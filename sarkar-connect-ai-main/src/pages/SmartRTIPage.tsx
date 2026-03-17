@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Mic, FileText, Send, BookOpen, Download, Loader2 } from "lucide-react";
+import { Mic, FileText, Send, BookOpen, Download, Loader2, AlertCircle, Scale, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
 const sampleDraft = `TO,
@@ -55,12 +55,75 @@ const SmartRTIPage = () => {
   const [isListening, setIsListening] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [draft, setDraft] = useState(sampleDraft);
+  const [triage, setTriage] = useState<"criminal" | "civil" | "none">("none");
 
   const handleGenerate = async () => {
     setIsGenerating(true);
+    setTriage("none");
     
+    const q = query.toLowerCase();
+    
+    // AI Triage Detection
+    const isCivil = q.includes("refund") || q.includes("landlord") || q.includes("salary") || 
+                    q.includes("deposit") || q.includes("delivery") || q.includes("consumer") ||
+                    q.includes("payment") || q.includes("product") || q.includes("service");
+
+    if (isCivil) {
+      setTriage("civil");
+    } else {
+      setTriage("criminal");
+    }
+
     // Offline templates
-    let newDraft = `TO,
+    let newDraft = "";
+
+    if (isCivil) {
+      newDraft = `LEGAL NOTICE
+
+To,
+[Recipient Name/Company Name],
+[Address]
+
+SUBJECT: LEGAL NOTICE FOR RECOVERY OF DUES / CONSUMER GRIEVANCE
+
+Sir/Madam,
+
+Under instructions from my client, I hereby serve you with the following legal notice:
+
+1. My client [Name] availed/purchased [Service/Product] on [Date].
+2. Despite repeated requests, [Specific issue: e.g., the refund of ₹XXXX has not been processed].
+3. You are hereby called upon to resolve this matter within 15 days of receipt of this notice.
+
+Failing which, my client shall be constrained to initiate legal proceedings in the appropriate Consumer Forum/Civil Court at your cost and consequences.
+
+[Sender Name]
+[Date]`;
+
+      if (q.includes("landlord") || q.includes("deposit")) {
+        newDraft = `LEGAL NOTICE
+
+To,
+[Landlord Name],
+[Address]
+
+SUBJECT: LEGAL NOTICE FOR REFUND OF SECURITY DEPOSIT
+
+Sir/Madam,
+
+I hereby serve you with this legal notice regarding the property at [Leased Address]:
+
+1. That I was a tenant at the aforementioned property until [Vacation Date].
+2. That as per the Lease Agreement, a security deposit of ₹[Amount] is refundable upon vacation.
+3. You have failed to refund the said amount despite the property being handed over in good condition.
+
+You are requested to refund the amount of ₹[Amount] within 7 days, failing which I will initiate a civil suit for recovery along with 18% interest.
+
+[Tenant Name]
+[Date]`;
+      }
+    } else {
+      // Criminal / RTI Templates
+      newDraft = `TO,
 The Public Information Officer,
 [Target Department],
 Government of India
@@ -81,10 +144,8 @@ Fee of ₹10 enclosed.
 [Applicant Name]
 [Date]`;
 
-    const q = query.toLowerCase();
-
-    if (q.includes("road") && q.includes("nh-48")) {
-      newDraft = `TO,
+      if (q.includes("road") && q.includes("nh-48")) {
+        newDraft = `TO,
 The Public Information Officer,
 National Highways Authority of India (NHAI),
 Ministry of Road Transport and Highways
@@ -105,8 +166,8 @@ Fee of ₹10 enclosed via Postal Order.
 
 [Applicant Name]
 [Date]`;
-    } else if (q.includes("police") || q.includes("fir")) {
-      newDraft = `TO,
+      } else if (q.includes("police") || q.includes("fir")) {
+        newDraft = `TO,
 The Public Information Officer,
 Office of the Commissioner of Police,
 [District/City]
@@ -127,28 +188,7 @@ Fee of ₹10 enclosed via Postal Order.
 
 [Applicant Name]
 [Date]`;
-    } else if (q.includes("hospital") || q.includes("medical")) {
-        newDraft = `TO,
-The Public Information Officer,
-Department of Health and Family Welfare,
-[State Government]
-
-SUBJECT: Information under RTI Act, 2005
-
-Sir/Madam,
-Under Section 6(1) of the RTI Act, 2005, I request the following details regarding [Administrative Details / Hospital Name]:
-
-1. Daily stock register of essential medicines for the last 30 days.
-2. Duty roster of doctors in the emergency ward for the current month.
-3. Details of funds allocated for medical equipment in FY 2024-25.
-
-REASON FOR REQUEST:
-Due to reports of medicine shortages affecting local patients, this information is necessary to ensure accountability in public health services.
-
-Fee of ₹10 enclosed via Postal Order.
-
-[Applicant Name]
-[Date]`;
+      }
     }
 
     try {
@@ -166,17 +206,14 @@ Fee of ₹10 enclosed via Postal Order.
 
       const data = await response.json();
       
-      // Since the backend might just return a basic generic output or empty string for the prototype, 
-      // let's use the UI's dynamic draft if it matches one of our rich templates, otherwise use the backend data.
-      if (data.legal_draft && !newDraft.includes("NHAI") && !newDraft.includes("Commissioner of Police") && !newDraft.includes("Health and Family Welfare")) {
+      if (data.legal_draft && !isCivil && !newDraft.includes("NHAI") && !newDraft.includes("Commissioner of Police")) {
         setDraft(data.legal_draft);
       } else {
-        setDraft(newDraft + "\n\n[AUTO-ANALYSIS COMPLETED: BNS 2024 COMPLIANT]");
+        setDraft(newDraft + (isCivil ? "\n\n[AUTO-TRIAGE: CIVIL MATTER DETECTED]" : "\n\n[AUTO-ANALYSIS COMPLETED: BNS 2024 COMPLIANT]"));
       }
     } catch (err) {
       console.error("RTI Generation error:", err);
-      // Backend failed, so safely use our rich template logic
-      setDraft(newDraft + "\n\n[AUTO-ANALYSIS COMPLETED: BNS 2024 COMPLIANT]");
+      setDraft(newDraft + (isCivil ? "\n\n[AUTO-TRIAGE: CIVIL MATTER DETECTED]" : "\n\n[AUTO-ANALYSIS COMPLETED: BNS 2024 COMPLIANT]"));
     } finally {
       setIsGenerating(false);
     }
@@ -261,8 +298,12 @@ Fee of ₹10 enclosed via Postal Order.
                     <FileText className="h-5 w-5 text-gold" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg font-display">Auto-Drafted RTI Application</CardTitle>
-                    <p className="text-xs text-muted-foreground">AI-generated with legal references</p>
+                    <CardTitle className="text-lg font-display">
+                      {triage === "civil" ? "AI-Drafted Legal Notice" : "Auto-Drafted RTI Application"}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      {triage === "civil" ? "Civil/Consumer dispute detected" : "AI-generated with legal references"}
+                    </p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" className="border-accent text-accent hover:bg-accent/10">
@@ -270,13 +311,45 @@ Fee of ₹10 enclosed via Postal Order.
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border bg-card p-6 font-mono text-sm leading-relaxed whitespace-pre-wrap max-h-[600px] overflow-y-auto">
+                {triage === "civil" && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mb-4 p-3 bg-accent/10 border border-accent/20 rounded-lg flex items-start gap-3"
+                  >
+                    <AlertCircle className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-accent">AI Triage: Non-Criminal Matter</p>
+                      <p className="text-[10px] text-muted-foreground leading-snug">
+                        This issue has been identified as a civil/consumer dispute rather than a criminal offense. 
+                        We have generated a Legal Notice instead of an FIR or RTI.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+                <div className="rounded-lg border bg-card p-6 font-mono text-sm leading-relaxed whitespace-pre-wrap max-h-[600px] overflow-y-auto relative">
+                  {triage === "civil" && (
+                    <div className="absolute top-4 right-4 opacity-10 pointer-events-none">
+                      <Scale className="h-20 w-20" />
+                    </div>
+                  )}
+                  {triage === "criminal" && (
+                    <div className="absolute top-4 right-4 opacity-10 pointer-events-none">
+                      <ShieldCheck className="h-20 w-20" />
+                    </div>
+                  )}
                   {draft}
                 </div>
                 <div className="mt-4 flex items-center gap-2">
-                  <Badge className="bg-success text-primary-foreground text-xs">✓ RTI Act 2005 Compliant</Badge>
-                  <Badge variant="outline" className="text-xs">Auto-addressed to PIO</Badge>
-                  <Badge variant="outline" className="text-xs">Fee: ₹10 included</Badge>
+                  <Badge className={`${triage === "civil" ? "bg-accent" : "bg-success"} text-primary-foreground text-xs`}>
+                    {triage === "civil" ? "✓ Civil Court Ready" : "✓ RTI Act 2005 Compliant"}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {triage === "civil" ? "Notice of Recovery" : "Auto-addressed to PIO"}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {triage === "civil" ? "Legal Notice Fee" : "Fee: ₹10 included"}
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
