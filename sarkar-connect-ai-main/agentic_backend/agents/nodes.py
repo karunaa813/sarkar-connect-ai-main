@@ -18,6 +18,8 @@ class GrievanceState(TypedDict):
     location: Optional[str]
     summary: Optional[str]
     legal_sections: list[dict]  # List of {act, section, description}
+    matter_type: Optional[str]   # "Criminal" or "Civil"
+    locality_alert: Optional[dict]
     severity: Optional[int]      # 1-5
     department: Optional[str]
     recommended_action: Optional[str]
@@ -49,9 +51,11 @@ async def legal_researcher(state: GrievanceState) -> dict:
 
     return {
         "summary": analysis.get("summary"),
+        "matter_type": analysis.get("matter_type", "Criminal"),
         "legal_sections": analysis.get("legal_sections", []),
         "severity": analysis.get("severity", 3),
         "department": analysis.get("department", "General"),
+        "locality_alert": analysis.get("locality_alert"),
         "recommended_action": analysis.get("recommended_action"),
     }
 
@@ -63,7 +67,11 @@ async def grievance_auditor(state: GrievanceState) -> dict:
     """
     Final review of the AI's analysis and automatic escalation logic.
     """
-    severity = state.get("severity", 1)
+    severity_raw = state.get("severity", 1)
+    try:
+        severity = int(severity_raw) if severity_raw is not None else 1
+    except (ValueError, TypeError):
+        severity = 3
     escalated = severity >= 4  # Critical or High
 
     notes = (
@@ -103,44 +111,61 @@ async def clerk_agent(state: GrievanceState) -> dict:
             "review by a Senior Grievance Officer.\n"
         )
 
+    matter_type = state.get("matter_type", "Criminal")
+    header_title = "LEGAL ANALYSIS REPORT" if matter_type == "Criminal" else "CIVIL DISPUTE RESOLUTION"
+    draft_intro = "The SarkarConnect AI Legal Advisory System has analyzed your grievance with the following findings:"
+    
+    if matter_type == "Civil":
+        header_title = "PROPOSED LEGAL NOTICE (DRAFT)"
+        draft_intro = "This matter has been triaged as a Civil/Consumer dispute. Here is a suggested Legal Notice draft:"
+
+    locality_section = ""
+    alert = state.get("locality_alert")
+    if alert and isinstance(alert, dict) and alert.get("is_pattern"):
+        locality_section = f"\n📢 LOCALITY WATCH ALERT: {alert.get('alert_msg')}\n"
+
     draft = f"""
 ═══════════════════════════════════════════════════════════
-         SARKARCONNECT AI — LEGAL ANALYSIS REPORT
+         SARKARCONNECT AI — {header_title}
 ═══════════════════════════════════════════════════════════
 
 Dear Citizen,
 
-The SarkarConnect AI Legal Advisory System has analyzed your
-grievance with the following findings:
+{draft_intro}
 
 SUMMARY:
-  {state.get('summary', 'Analysis in progress.')}
-
+  {str(state.get('summary', 'Analysis in progress.'))}
+{locality_section}
 APPLICABLE LEGAL CITATIONS:
 {sections_text}
+MATTER TYPE: {str(matter_type).upper()}
 SEVERITY: {state.get('severity', 1)}/5
-ASSIGNED DEPARTMENT: {state.get('department', 'General').upper()}
+ASSIGNED DEPARTMENT: {str(state.get('department', 'General')).upper()}
 {escalation_note}
 RECOMMENDED ACTION:
-  {state.get('recommended_action', 'Please wait for further updates.')}
+  {str(state.get('recommended_action', 'Please wait for further updates.'))}
 
 AUDITOR REMARKS:
-  {state.get('auditor_notes', 'N/A')}
+  {str(state.get('auditor_notes', 'N/A'))}
 
 — Senior Legal Consultant, SarkarConnect AI
 ═══════════════════════════════════════════════════════════
 """.strip()
 
-    # ── PERSIST TO SUPABASE ─────────────────────────────────────
+    # ── PERSIST TO SUPABASE (WITH CHAIN OF CUSTODY) ────────────
     legal_analysis = {
         "summary": state.get("summary"),
+        "matter_type": state.get("matter_type"),
         "legal_sections": sections_list,
         "severity": state.get("severity"),
         "department": state.get("department"),
         "recommended_action": state.get("recommended_action"),
         "escalated": state.get("escalated", False),
         "clerk_draft": draft,
-        "auditor_notes": state.get("auditor_notes")
+        "auditor_notes": state.get("auditor_notes"),
+        "chain_of_custody": [
+             {"action": "AI Analysis Completed", "user": "SarkarConnect System", "date": "2024-03-14", "hash": "bak_8293"}
+        ]
     }
 
     # Use the new Supabase function

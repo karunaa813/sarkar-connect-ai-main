@@ -118,17 +118,21 @@ Act as a Senior Indian Legal Consultant and Grievance Redressal Officer for "Sar
 
 ### RESPONSE TASK:
 1. SUMMARY: Provide a 1-sentence legal summary of the issue.
-2. LEGAL CITATION: Identify the most applicable Section (BNS or IPC). Use the context sections provided above if they fit well, or your internal knowledge for the best legal grounding.
-3. SEVERITY: Rate the issue from 1 (Low) to 5 (Critical).
-4. DEPARTMENT: Recommend the exact government department responsible for this.
-5. ACTIONABLE ADVICE: Tell the citizen the next immediate legal step they should take.
+2. MATTER TYPE: Categorize as "Criminal" (Requires FIR/RTI) or "Civil" (Requires Legal Notice/Consumer Court).
+3. LEGAL CITATION: Identify the most applicable Section (BNS or IPC). Use the context sections provided above if they fit well, or your internal knowledge for the best legal grounding.
+4. SEVERITY: Rate the issue from 1 (Low) to 5 (Critical).
+5. DEPARTMENT: Recommend the exact government department responsible for this.
+6. LOCALITY ALERT: If the complaint mentions a specific area/locality AND it sounds like a recurring crime (e.g., snatching, theft), flag it as a "Pattern Alert".
+7. ACTIONABLE ADVICE: Tell the citizen the next immediate legal step they should take.
 
 ### OUTPUT SCHEMA (STRICT JSON):
 {{
   "summary": "String",
-  "legal_sections": [{{ "act": "BNS/IPC", "section": "Number", "description": "Brief Explanation" }}],
+  "matter_type": "Criminal" | "Civil",
+  "legal_sections": [{{ "act": "BNS/IPC/Consumer Act", "section": "Number", "description": "Brief Explanation" }}],
   "severity": 1-5,
   "department": "String",
+  "locality_alert": {{ "is_pattern": boolean, "locality": "String", "alert_msg": "String" }},
   "recommended_action": "String"
 }}
 

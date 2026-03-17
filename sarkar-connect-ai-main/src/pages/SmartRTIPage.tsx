@@ -56,6 +56,7 @@ const SmartRTIPage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [draft, setDraft] = useState(sampleDraft);
   const [triage, setTriage] = useState<"criminal" | "civil" | "none">("none");
+  const [localityAlert, setLocalityAlert] = useState<{ is_pattern: boolean; alert_msg: string } | null>(null);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -206,13 +207,27 @@ Fee of ₹10 enclosed via Postal Order.
 
       const data = await response.json();
       
-      if (data.legal_draft && !isCivil && !newDraft.includes("NHAI") && !newDraft.includes("Commissioner of Police")) {
+      // Update triage state from backend
+      if (data.matter_type) {
+        setTriage(data.matter_type.toLowerCase() as "civil" | "criminal");
+      }
+
+      // Update locality alert from backend
+      if (data.locality_alert && data.locality_alert.is_pattern) {
+        setLocalityAlert(data.locality_alert);
+      } else {
+        setLocalityAlert(null);
+      }
+
+      if (data.legal_draft) {
         setDraft(data.legal_draft);
       } else {
         setDraft(newDraft + (isCivil ? "\n\n[AUTO-TRIAGE: CIVIL MATTER DETECTED]" : "\n\n[AUTO-ANALYSIS COMPLETED: BNS 2024 COMPLIANT]"));
       }
     } catch (err) {
       console.error("RTI Generation error:", err);
+      // Fallback to offline detection if backend fails
+      setTriage(isCivil ? "civil" : "criminal");
       setDraft(newDraft + (isCivil ? "\n\n[AUTO-TRIAGE: CIVIL MATTER DETECTED]" : "\n\n[AUTO-ANALYSIS COMPLETED: BNS 2024 COMPLIANT]"));
     } finally {
       setIsGenerating(false);
@@ -311,21 +326,41 @@ Fee of ₹10 enclosed via Postal Order.
                 </Button>
               </CardHeader>
               <CardContent>
-                {triage === "civil" && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }} 
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="mb-4 p-3 bg-accent/10 border border-accent/20 rounded-lg flex items-start gap-3"
-                  >
-                    <AlertCircle className="h-5 w-5 text-accent shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-semibold text-accent">AI Triage: Non-Criminal Matter</p>
-                      <p className="text-[10px] text-muted-foreground leading-snug">
-                        This issue has been identified as a civil/consumer dispute rather than a criminal offense. 
-                        We have generated a Legal Notice instead of an FIR or RTI.
-                      </p>
-                    </div>
-                  </motion.div>
+                {(triage === "civil" || (localityAlert && localityAlert.is_pattern)) && (
+                  <div className="space-y-3 mb-4">
+                    {triage === "civil" && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }} 
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="p-3 bg-accent/10 border border-accent/20 rounded-lg flex items-start gap-3"
+                      >
+                        <AlertCircle className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-semibold text-accent">AI Triage: Non-Criminal Matter</p>
+                          <p className="text-[10px] text-muted-foreground leading-snug">
+                            This issue has been identified as a civil/consumer dispute. 
+                            We have generated a Legal Notice draft for recovery.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                    
+                    {localityAlert && localityAlert.is_pattern && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }} 
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="p-3 bg-danger-high/10 border border-danger-high/20 rounded-lg flex items-start gap-3"
+                      >
+                        <AlertCircle className="h-5 w-5 text-danger-high shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-semibold text-danger-high">Locality Alert: Pattern Detected</p>
+                          <p className="text-[10px] text-muted-foreground leading-snug">
+                            {localityAlert.alert_msg} This has been flagged for the Neighbourhood Watch network.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
                 )}
                 <div className="rounded-lg border bg-card p-6 font-mono text-sm leading-relaxed whitespace-pre-wrap max-h-[600px] overflow-y-auto relative">
                   {triage === "civil" && (

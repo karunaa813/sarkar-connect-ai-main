@@ -9,6 +9,7 @@ const navItems = [
   { label: "Citizen Portal", path: "/" },
   { label: "Smart RTI", path: "/smart-rti" },
   { label: "Evidence Vault", path: "/evidence-vault" },
+  { label: "Community Watch", path: "/neighbourhood-watch" },
   { label: "Legal Library", path: "/results" },
   { label: "Rewards", path: "/rewards" },
 ];

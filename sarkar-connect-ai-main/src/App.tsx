@@ -14,6 +14,7 @@ import SmartRTIPage from "./pages/SmartRTIPage";
 import EvidenceVaultPage from "./pages/EvidenceVaultPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import NeighbourhoodWatchPage from "./pages/NeighbourhoodWatchPage";
 import NotFound from "./pages/NotFound";
 import LegalHelpChatbot from "./components/LegalHelpChatbot";
 import CorruptionAlertSidebar from "./components/CorruptionAlertSidebar";
@@ -42,6 +43,7 @@ const App = () => {
               <Route path="/officer-dashboard" element={<ProtectedRoute requiredRole="official"><OfficerDashboardPage /></ProtectedRoute>} />
               <Route path="/smart-rti" element={<ProtectedRoute><SmartRTIPage /></ProtectedRoute>} />
               <Route path="/evidence-vault" element={<ProtectedRoute><EvidenceVaultPage /></ProtectedRoute>} />
+              <Route path="/neighbourhood-watch" element={<ProtectedRoute><NeighbourhoodWatchPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

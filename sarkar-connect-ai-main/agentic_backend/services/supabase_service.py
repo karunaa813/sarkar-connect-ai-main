@@ -5,7 +5,12 @@ from sentence_transformers import SentenceTransformer
 # ── Supabase Configuration ─────────────────────────────────────
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+else:
+    print("⚠️  Warning: Supabase credentials missing. Vector search will be disabled.")
+    supabase = None
 
 # ── Embedding Configuration ─────────────────────────────────────
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -15,6 +20,9 @@ def query_legal_sections(query: str, top_k: int = 3):
     Search Supabase for relevant Indian Law sections using 
     vector similarity search.
     """
+    if not supabase:
+        return []
+        
     try:
         # 1. Generate embedding locally
         query_embedding = model.encode(query).tolist()

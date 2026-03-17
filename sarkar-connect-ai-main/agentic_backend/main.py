@@ -67,6 +67,8 @@ async def submit_grievance_text(req: GrievanceRequest):
     return GrievanceResponse(
         grievance_id=f"GRV-{abs(hash(req.complaint_text)) % 100000:05d}",
         summary=result.get("summary"),
+        matter_type=result.get("matter_type", "Criminal"),
+        locality_alert=result.get("locality_alert"),
         legal_sections=result.get("legal_sections", []),
         severity=result.get("severity", 1),
         department=result.get("department", "General"),
@@ -123,6 +125,8 @@ async def submit_grievance_audio(
     return GrievanceResponse(
         grievance_id=f"GRV-{abs(hash(dummy_text)) % 100000:05d}",
         summary=result.get("summary"),
+        matter_type=result.get("matter_type", "Criminal"),
+        locality_alert=result.get("locality_alert"),
         legal_sections=result.get("legal_sections", []),
         severity=result.get("severity", 1),
         department=result.get("department", "General"),

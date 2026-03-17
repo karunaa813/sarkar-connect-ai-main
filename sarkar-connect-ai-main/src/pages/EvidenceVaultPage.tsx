@@ -3,7 +3,22 @@ import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Lock, Upload, FileImage, FileText, Film, ShieldCheck, Hash, Clock, Loader2 } from "lucide-react";
+import { 
+  FileImage, 
+  FileText, 
+  Film, 
+  Upload, 
+  Loader2, 
+  Clock, 
+  ShieldCheck, 
+  Hash, 
+  History, 
+  Lock, 
+  CheckCircle2, 
+  ArrowRight,
+  User 
+} from "lucide-react";
+
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 
@@ -18,6 +33,11 @@ const evidenceItems = [
     verified: true,
     pixelIntegrity: 100,
     metadataVerified: true,
+    custody: [
+      { action: "Evidence Uploaded", user: "Citizen (Komal)", date: "2024-12-15 09:14:22", hash: "0x7a...12" },
+      { action: "AI Authenticated", user: "SarkarConnect System", date: "2024-12-15 09:15:05", hash: "0xbc...44" },
+      { action: "Accessed for Review", user: "SI Sanjay Sharma", date: "2024-12-16 11:20:10", hash: "0x9d...89" }
+    ]
   },
   {
     id: "EVD-2024-002",
@@ -29,6 +49,10 @@ const evidenceItems = [
     verified: true,
     pixelIntegrity: null,
     metadataVerified: true,
+    custody: [
+      { action: "Evidence Uploaded", user: "Citizen (Komal)", date: "2024-12-15 09:18:45", hash: "0x43...ab" },
+      { action: "Verified by Clerk", user: "Digital Court Asst", date: "2024-12-17 14:05:00", hash: "0xef...12" }
+    ]
   },
   {
     id: "EVD-2024-003",
@@ -40,6 +64,11 @@ const evidenceItems = [
     verified: true,
     pixelIntegrity: 98,
     metadataVerified: true,
+    custody: [
+      { action: "Evidence Uploaded", user: "Citizen (Komal)", date: "2024-12-15 09:22:10", hash: "0x12...34" },
+      { action: "Forensic Hash Match", user: "Cyber Cell Agent", date: "2024-12-16 10:00:00", hash: "0x56...78" },
+      { action: "Submitted to Magistrate", user: "SI Sanjay Sharma", date: "2024-12-18 16:30:45", hash: "0x90...ef" }
+    ]
   },
   {
     id: "EVD-2024-004",
@@ -51,6 +80,10 @@ const evidenceItems = [
     verified: false,
     pixelIntegrity: 67,
     metadataVerified: false,
+    custody: [
+      { action: "Evidence Uploaded", user: "Citizen (Komal)", date: "2024-12-15 10:05:33", hash: "0xab...cd" },
+      { action: "Integrity Violation Detected", user: "System AI", date: "2024-12-15 10:06:01", hash: "0xff...00" }
+    ]
   },
   {
     id: "EVD-2024-005",
@@ -62,6 +95,9 @@ const evidenceItems = [
     verified: true,
     pixelIntegrity: null,
     metadataVerified: true,
+    custody: [
+      { action: "Evidence Uploaded", user: "Citizen (Komal)", date: "2024-12-15 10:12:08", hash: "0xfe...dc" }
+    ]
   },
 ];
 
@@ -77,6 +113,7 @@ const getTypeIcon = (type: string) => {
 const EvidenceVaultPage = () => {
   const [items, setItems] = useState(evidenceItems);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedItemHistory, setSelectedItemHistory] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUploadClick = () => {
@@ -109,6 +146,10 @@ const EvidenceVaultPage = () => {
       verified: true,
       pixelIntegrity: type === "image" ? 100 : null,
       metadataVerified: true,
+      custody: [
+        { action: "Evidence Uploaded", user: "Citizen (Komal)", date: new Date().toLocaleString(), hash: "0x" + Math.random().toString(16).slice(2, 8) },
+        { action: "Secured in Blockchain", user: "SarkarConnect Vault", date: new Date().toLocaleString(), hash: "0x" + Math.random().toString(16).slice(2, 8) }
+      ]
     };
 
     setItems([newItem, ...items]);
@@ -202,14 +243,72 @@ const EvidenceVaultPage = () => {
                     </div>
 
                     {/* Blockchain Hash */}
-                    <div className="mt-3 rounded-md bg-secondary/60 p-3 flex items-center gap-3">
-                      <Hash className="h-4 w-4 text-accent shrink-0" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Blockchain Hash</p>
-                        <p className="text-xs font-mono font-medium break-all">{item.hash}</p>
+                    <div className="mt-3 rounded-md bg-secondary/60 p-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Hash className="h-4 w-4 text-accent shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Blockchain Hash</p>
+                          <p className="text-xs font-mono font-medium break-all">{item.hash}</p>
+                        </div>
                       </div>
-                      <Lock className="h-4 w-4 text-accent shrink-0 ml-auto" />
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setSelectedItemHistory(selectedItemHistory === item.id ? null : item.id)}
+                          className="text-xs text-accent hover:bg-accent/10 h-8 gap-1"
+                        >
+                          <History className="h-3 w-3" /> 
+                          {selectedItemHistory === item.id ? "Hide History" : "Chain of Custody"}
+                        </Button>
+                        <Lock className="h-4 w-4 text-accent" />
+                      </div>
                     </div>
+
+                    {/* Custody Ledger Log */}
+                    {selectedItemHistory === item.id && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="mt-4 pt-4 border-t border-dashed border-accent/20"
+                      >
+                        <h4 className="text-[10px] uppercase tracking-widest font-bold text-accent mb-3 flex items-center gap-2">
+                          <History className="h-3 w-3" /> Blockchain Custody Ledger
+                        </h4>
+                        <div className="space-y-4">
+                          {item.custody.map((log, idx) => (
+                            <div key={idx} className="relative pl-6 before:absolute before:left-2 before:top-2 before:bottom-0 before:w-px before:bg-accent/20">
+                              <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full bg-secondary border border-accent/50 flex items-center justify-center">
+                                <CheckCircle2 className="h-2.5 w-2.5 text-accent" />
+                              </div>
+                              <div className="flex items-center justify-between gap-4">
+                                <div>
+                                  <p className="text-xs font-bold text-white/90">{log.action}</p>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                      <User className="h-2.5 w-2.5" /> {log.user}
+                                    </div>
+                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                      <Clock className="h-2.5 w-2.5" /> {log.date}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <Badge variant="outline" className="text-[9px] border-accent/20 text-accent/70 font-mono">
+                                    {log.hash}
+                                  </Badge>
+                                </div>
+                              </div>
+                              {idx < item.custody.length - 1 && (
+                                <div className="mt-2 text-center opacity-20">
+                                  <ArrowRight className="h-3 w-3 rotate-90 mx-auto" />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>

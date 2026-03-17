@@ -25,6 +25,8 @@ class GrievanceResponse(BaseModel):
     summary: Optional[str] = None
     legal_sections: list[dict] = Field(default_factory=list,
                                        description="Matched BNS/IPC sections with descriptions")
+    matter_type: Optional[str] = "Criminal"
+    locality_alert: Optional[dict] = None
     severity: int = Field(3, description="1 (Low) to 5 (Critical)")
     department: str = Field("General", description="Responsible department")
     recommended_action: Optional[str] = None
@@ -46,6 +48,8 @@ class GrievanceState(BaseModel):
 
     # Filled by legal_researcher (AI Consultant)
     summary: Optional[str] = None
+    matter_type: Optional[str] = "Criminal"
+    locality_alert: Optional[dict] = None
     legal_sections: list[dict] = Field(default_factory=list)
     severity: int = 1
     department: Optional[str] = None
