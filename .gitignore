@@ -7,3 +7,6 @@ dist
 sarkar-connect-ai-main/node_modules
 sarkar-connect-ai-main/dist
 sarkar-connect-ai-main/.env
+__pycache__/
+*.pyc
+*.zip
